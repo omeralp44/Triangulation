@@ -1,0 +1,157 @@
+
+import math
+
+#Reading file
+file = open("q2_input.txt", "r")
+content = file.read()
+file.close()
+
+requests = content.split()
+
+#Function to calculate the distance between two points
+def distanceBetween2Points(point1, point2):
+    
+    x1 = float(point1[0])
+    y1 = float(point1[1])
+
+    x2 = float(point2[0])
+    y2 = float(point2[1])
+
+    distance = math.sqrt((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2))
+
+    return distance
+
+xyEst = []
+
+for request in requests:
+    
+    measurements = request.split(";")
+    
+    #Storing Points
+    allPoints = []
+
+    xTot = 0
+    yTot = 0
+    fail1 = False
+    fail2 = False
+
+    for i in range (len(measurements)):
+
+        if len(measurements) == 1:
+            fail1 = True
+
+        measurement1 = measurements[i]
+        measurement1 = measurement1.split(",")
+
+        if i == (len(measurements) - 1):
+            measurement2 = measurements[0]
+            measurement2 = measurement2.split(",")
+        else:
+            measurement2 = measurements[i+1]
+            measurement2 = measurement2.split(",")
+    
+        measurement1Y = float(measurement1[1])
+        measurement2Y = float(measurement2[1])
+
+        if measurement1Y <= measurement2Y:
+            firstPoint = [float(measurement1[0]), float(measurement1[1])]
+            firstAngle = float(measurement1[2]) + float(measurement1[3]) 
+
+            secondPoint = [float(measurement2[0]), float(measurement2[1])]
+            secondAngle = float(measurement2[2]) + float(measurement2[3]) 
+
+        else:
+            firstPoint = [float(measurement2[0]), float(measurement2[1])]
+            firstAngle = float(measurement2[2]) + float(measurement2[3]) 
+
+            secondPoint = [float(measurement1[0]), float(measurement1[1])]
+            secondAngle = float(measurement1[2]) + float(measurement1[3]) 
+
+        #Distance
+        b = math.sqrt((firstPoint[0] - secondPoint[0]) * (firstPoint[0] - secondPoint[0]) + (firstPoint[1] - secondPoint[1]) * (firstPoint[1] - secondPoint[1]))
+
+        #Gamma
+        if b != 0:
+            gamma = math.degrees(math.asin(abs(secondPoint[0] - firstPoint[0]) / b))
+        else:
+            fail2 = True
+
+        #Alpha
+        alpha = 360 - firstAngle + 90 - gamma
+
+        #Beta
+        beta = 360 - secondAngle - 90 - gamma
+    
+        #d
+        betaRad = math.radians(beta)
+        alphaRad = math.radians(alpha)
+
+        d = abs(math.tan(betaRad)) * abs(math.tan(alphaRad)) * b / (abs(math.tan(betaRad)) + abs(math.tan(alphaRad)))
+
+        #h
+        h = d / abs(math.sin(alphaRad))
+
+        #Shifting amount
+        angleRad = math.radians(firstAngle)
+        xSh = h * math.cos(angleRad)
+        ySh = h * math.sin(angleRad)
+
+        #Shifting
+        firstPoint[0] = firstPoint[0] + xSh
+        firstPoint[1] = firstPoint[1] + ySh
+
+        #Recording points
+        allPoints.append(firstPoint)
+
+        #Totaling
+        xTot = xTot + firstPoint[0]
+        yTot = yTot + firstPoint[1] 
+
+    #Estimated Position
+    xEst = xTot / len(measurements)
+    yEst = yTot / len(measurements)
+
+    est = [xEst, yEst]
+    
+    #Finding mean of the lines
+    mean = 0
+    dist = []
+    for point in allPoints:
+        distance = distanceBetween2Points(point, est)
+        dist.append(distance)
+        mean = mean + distance
+    mean = mean / len(dist)
+    
+    #Standard error
+    var = 0
+    for distance in dist:
+        var = var + (distance - mean) * (distance - mean) 
+    var = var / len(dist)
+    std = math.sqrt(var)
+    err = std / math.sqrt(len(dist))
+    
+    err = str(err)
+
+    xEst = str(xEst)
+    yEst = str(yEst)
+    
+    if (fail1 == True):
+        xyEst.append("FAILED due to insufficient locator data!!!!" + " \n")
+    
+    elif (fail2 == True):
+        xyEst.append("FAILED due to zero distance!!!!" + " \n")    
+
+    else:
+        xyEst.append("x,y,err: " + xEst + ", " + yEst + ", " + err + " \n")  
+    
+#Writing to another file named q2Outputs.txt
+q2File = open("q2Outputs.txt", "w")
+q2File.writelines(xyEst)
+q2File.close()
+
+q2File = open("q2Outputs.txt", "r")
+print(q2File.read())
+q2File.close()
+
+
+
